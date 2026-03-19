@@ -1,0 +1,100 @@
+@font-face {
+  font-family: "Manrope Local";
+  src: url("/fonts/Manrope-Variable.ttf") format("truetype");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Source Serif Local";
+  src: url("/fonts/SourceSerif4-Variable.ttf") format("truetype");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-ui: "Manrope Local", "Segoe UI", sans-serif;
+  --font-display: "Source Serif Local", "Georgia", serif;
+
+  --bg: #0d1320;
+  --bg-gradient: radial-gradient(circle at 10% -5%, #1f2d48 0%, #0d1320 46%, #090e17 100%);
+  --surface: rgba(17, 25, 40, 0.84);
+  --surface-2: rgba(22, 32, 50, 0.86);
+  --field: rgba(12, 20, 34, 0.8);
+  --text: #dfe8ff;
+  --heading: #f8fbff;
+  --muted: #9aa9c8;
+  --border: rgba(161, 183, 224, 0.28);
+  --accent: #e0aa4a;
+  --accent-strong: #c7831d;
+  --accent-soft: rgba(224, 170, 74, 0.18);
+  --glow-a: rgba(73, 125, 216, 0.36);
+  --glow-b: rgba(224, 170, 74, 0.26);
+  --shadow: 0 26px 52px rgba(3, 8, 19, 0.42);
+}
+
+:root[data-theme="light"] {
+  --bg: #f4efe6;
+  --bg-gradient: radial-gradient(circle at 16% -10%, #fffaf1 0%, #f4efe6 43%, #eee6d8 100%);
+  --surface: rgba(255, 252, 246, 0.78);
+  --surface-2: rgba(250, 244, 235, 0.88);
+  --field: rgba(255, 249, 240, 0.95);
+  --text: #2d2b2a;
+  --heading: #1f1d1b;
+  --muted: #6d6558;
+  --border: rgba(125, 103, 71, 0.24);
+  --accent: #b3701f;
+  --accent-strong: #8f5412;
+  --accent-soft: rgba(179, 112, 31, 0.12);
+  --glow-a: rgba(154, 127, 82, 0.2);
+  --glow-b: rgba(187, 142, 84, 0.2);
+  --shadow: 0 18px 38px rgba(95, 71, 32, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  color: var(--text);
+  background: var(--bg-gradient);
+  background-color: var(--bg);
+  background-attachment: fixed;
+  font-size: 16px;
+  line-height: 1.5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.18;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.18) 0.8px, transparent 0.8px),
+    linear-gradient(transparent 0%, rgba(255, 255, 255, 0.04) 100%);
+  background-size: 3px 3px, 100% 100%;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
