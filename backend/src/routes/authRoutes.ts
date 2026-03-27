@@ -6,38 +6,73 @@ import { authMiddleware } from "../middleware/auth";
 
 const router = Router();
 
+// ── Validation helpers ──
+
+const MAX_NAME_LENGTH = 50;
+const MAX_EMAIL_LENGTH = 254; // RFC 5321
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 128;
+
 function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= MAX_EMAIL_LENGTH;
+}
+
+function isStrongPassword(password: string): { valid: boolean; reason?: string } {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { valid: false, reason: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
+  }
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return { valid: false, reason: "Password is too long" };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, reason: "Password must contain at least one lowercase letter" };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, reason: "Password must contain at least one uppercase letter" };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, reason: "Password must contain at least one number" };
+  }
+  return { valid: true };
+}
+
+/** Strip anything that isn't a letter, space, hyphen, or apostrophe */
+function sanitizeName(raw: string): string {
+  return raw.replace(/[^a-zA-Z\s'-]/g, "").trim().slice(0, MAX_NAME_LENGTH);
 }
 
 function createToken(userId: string): string {
   const jwtSecret = process.env.JWT_SECRET;
-
   if (!jwtSecret) {
     throw new Error("JWT_SECRET is not configured");
   }
-
   return jwt.sign({ userId }, jwtSecret, { expiresIn: "7d" });
 }
 
+// ── Routes ──
+
 router.post("/register", async (req, res) => {
   try {
-    const name = String(req.body.name ?? "").trim();
+    const firstName = sanitizeName(String(req.body.firstName ?? ""));
+    const lastName = sanitizeName(String(req.body.lastName ?? ""));
     const email = String(req.body.email ?? "").trim().toLowerCase();
     const password = String(req.body.password ?? "");
 
-    if (!name || name.length < 2) {
-      return res.status(400).json({ message: "Please provide your full name" });
+    if (!firstName || firstName.length < 2) {
+      return res.status(400).json({ message: "First name must be at least 2 characters" });
+    }
+
+    if (!lastName || lastName.length < 2) {
+      return res.status(400).json({ message: "Last name must be at least 2 characters" });
     }
 
     if (!isValidEmail(email)) {
       return res.status(400).json({ message: "Please provide a valid email" });
     }
 
-    if (password.length < 6) {
-      return res
-        .status(400)
-        .json({ message: "Password must be at least 6 characters" });
+    const passwordCheck = isStrongPassword(password);
+    if (!passwordCheck.valid) {
+      return res.status(400).json({ message: passwordCheck.reason });
     }
 
     const existingUser = await User.findOne({ email });
@@ -45,8 +80,8 @@ router.post("/register", async (req, res) => {
       return res.status(409).json({ message: "Email already registered" });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, passwordHash });
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await User.create({ firstName, lastName, email, passwordHash });
 
     const token = createToken(user.id);
 
@@ -54,13 +89,13 @@ router.post("/register", async (req, res) => {
       token,
       user: {
         id: user.id,
-        name: user.name || "User",
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
       },
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Registration failed";
-    return res.status(500).json({ message });
+  } catch (_error) {
+    return res.status(500).json({ message: "Registration failed" });
   }
 });
 
@@ -89,7 +124,8 @@ router.post("/login", async (req, res) => {
       token,
       user: {
         id: user.id,
-        name: user.name || "User",
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
       },
     });
@@ -100,7 +136,7 @@ router.post("/login", async (req, res) => {
 
 router.get("/me", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select("_id name email");
+    const user = await User.findById(req.userId).select("_id firstName lastName email");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -108,7 +144,8 @@ router.get("/me", authMiddleware, async (req, res) => {
     return res.json({
       user: {
         id: user.id,
-        name: user.name || "User",
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
       },
     });

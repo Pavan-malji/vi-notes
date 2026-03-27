@@ -9,7 +9,8 @@ type AuthMode = "login" | "register";
 
 interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
 }
 
@@ -31,7 +32,8 @@ interface AuthResponse {
 }
 
 interface AuthPayload {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   password: string;
   confirmPassword?: string;
@@ -76,6 +78,7 @@ function App() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [loadingSessionId, setLoadingSessionId] = useState<string | null>(null);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("Sign in to begin a verified writing session.");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -146,7 +149,7 @@ function App() {
 
     try {
       const requestPayload = isRegister
-        ? { name: payload.name, email: payload.email, password: payload.password }
+        ? { firstName: payload.firstName, lastName: payload.lastName, email: payload.email, password: payload.password }
         : { email: payload.email, password: payload.password };
 
       const response = await apiRequest<AuthResponse>(
@@ -157,10 +160,15 @@ function App() {
         },
       );
 
-      localStorage.setItem(TOKEN_STORAGE_KEY, response.token);
-      setToken(response.token);
-      setUser(response.user);
-      setStatusMessage(isRegister ? "Account created." : "Welcome back.");
+      if (isRegister) {
+        setAuthMode("login");
+        setStatusMessage("Account created successfully. Please login.");
+      } else {
+        localStorage.setItem(TOKEN_STORAGE_KEY, response.token);
+        setToken(response.token);
+        setUser(response.user);
+        setStatusMessage("Welcome back.");
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Authentication failed";
       setStatusMessage(message);
@@ -178,10 +186,14 @@ function App() {
     setSaveLoading(true);
 
     try {
+      const isEditing = Boolean(editingSessionId);
+      const path = isEditing ? `/api/sessions/${editingSessionId}` : "/api/sessions/save";
+      const method = isEditing ? "PUT" : "POST";
+
       const response = await apiRequest<{ session: SessionPayload }>(
-        "/api/sessions/save",
+        path,
         {
-          method: "POST",
+          method,
           body: JSON.stringify({ content }),
         },
         token,
@@ -198,7 +210,7 @@ function App() {
       setLastSavedAt(response.session.updatedAt);
       setHistory((current) => [summary, ...current.filter((entry) => entry.id !== summary.id)].slice(0, 20));
       setDirty(false);
-      setStatusMessage("Saved.");
+      setStatusMessage(isEditing ? "Session updated." : "Saved.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Save failed";
       setStatusMessage(message);
@@ -229,6 +241,37 @@ function App() {
     }
   }
 
+  async function editSession(sessionId: string) {
+    if (!token) {
+      setStatusMessage("Login is required to edit sessions.");
+      return;
+    }
+
+    setLoadingSessionId(sessionId);
+
+    try {
+      const response = await apiRequest<{ session: SessionPayload }>(`/api/sessions/${sessionId}`, {}, token);
+      setContent(response.session.content);
+      setLastSavedAt(response.session.updatedAt);
+      setEditingSessionId(sessionId);
+      setDirty(false);
+      setStatusMessage("Editing session. Changes will update this session.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to load session";
+      setStatusMessage(message);
+    } finally {
+      setLoadingSessionId(null);
+    }
+  }
+
+  function startNewSession() {
+    setContent("");
+    setEditingSessionId(null);
+    setLastSavedAt(null);
+    setDirty(false);
+    setStatusMessage("New session started.");
+  }
+
   async function deleteSession(sessionId: string) {
     if (!token) {
       setStatusMessage("Login is required to delete sessions.");
@@ -240,6 +283,13 @@ function App() {
     try {
       await apiRequest<{ message: string }>(`/api/sessions/${sessionId}`, { method: "DELETE" }, token);
       setHistory((current) => current.filter((session) => session.id !== sessionId));
+
+      if (editingSessionId === sessionId) {
+        setEditingSessionId(null);
+        setContent("");
+        setLastSavedAt(null);
+      }
+
       setStatusMessage("Session deleted.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to delete session";
@@ -257,6 +307,7 @@ function App() {
     setHistory([]);
     setLastSavedAt(null);
     setDirty(false);
+    setEditingSessionId(null);
 
     if (showMessage) {
       setStatusMessage("Logged out.");
@@ -302,13 +353,16 @@ function App() {
               saveLoading={saveLoading}
               loadingSessionId={loadingSessionId}
               deletingSessionId={deletingSessionId}
+              editingSessionId={editingSessionId}
               statusMessage={statusMessage}
               lastSavedAt={lastSavedAt}
               onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
               onLogout={handleLogout}
               onSave={saveCurrentSession}
               onOpenSession={openSession}
+              onEditSession={editSession}
               onDeleteSession={deleteSession}
+              onNewSession={startNewSession}
               onContentChange={(value) => {
                 setContent(value);
                 setDirty(true);

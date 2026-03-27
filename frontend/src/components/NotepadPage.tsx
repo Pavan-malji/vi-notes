@@ -5,7 +5,8 @@ type Theme = "dark" | "light";
 
 interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
 }
 
@@ -25,13 +26,16 @@ interface NotepadPageProps {
   saveLoading: boolean;
   loadingSessionId: string | null;
   deletingSessionId: string | null;
+  editingSessionId: string | null;
   statusMessage: string;
   lastSavedAt: string | null;
   onToggleTheme: () => void;
   onLogout: () => void;
   onSave: () => Promise<void>;
   onOpenSession: (sessionId: string) => Promise<void>;
+  onEditSession: (sessionId: string) => Promise<void>;
   onDeleteSession: (sessionId: string) => Promise<void>;
+  onNewSession: () => void;
   onContentChange: (value: string) => void;
 }
 
@@ -43,13 +47,16 @@ export default function NotepadPage({
   saveLoading,
   loadingSessionId,
   deletingSessionId,
+  editingSessionId,
   statusMessage,
   lastSavedAt,
   onToggleTheme,
   onLogout,
   onSave,
   onOpenSession,
+  onEditSession,
   onDeleteSession,
+  onNewSession,
   onContentChange,
 }: NotepadPageProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -61,14 +68,30 @@ export default function NotepadPage({
 
   const charCount = content.length;
 
+  const userInitials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
+
   return (
     <section className="notepad-home">
       <header className="app-topbar">
         <div className="header-left">
-          <div>
+          <div className="topbar-brand">
             <p className="brand">Vi Notes</p>
             <h2>Notepad</h2>
           </div>
+        </div>
+
+        <div className="header-center">
+          {editingSessionId ? (
+            <div className="editing-indicator">
+              <span className="editing-dot" />
+              <span>Editing session</span>
+            </div>
+          ) : (
+            <div className="editing-indicator new-indicator">
+              <span className="new-dot" />
+              <span>New session</span>
+            </div>
+          )}
         </div>
 
         <div className="header-right">
@@ -81,16 +104,27 @@ export default function NotepadPage({
               onClick={() => setIsProfileMenuOpen((current) => !current)}
               aria-label="Profile menu"
             >
-              <div className="user-chip" title={user.email}>
-                <strong>{user.name}</strong>
-                <span>{user.email}</span>
+              <div className="user-avatar" title={user.email}>
+                {userInitials}
               </div>
-              <span className="chevron">▾</span>
             </button>
 
             {isProfileMenuOpen ? (
               <div className="profile-menu" role="menu" aria-label="Profile actions">
-                <button className="btn btn-secondary" type="button" onClick={onLogout}>
+                <div className="profile-info">
+                  <div className="user-avatar user-avatar-lg">{userInitials}</div>
+                  <div className="profile-details">
+                    <strong>{user.firstName} {user.lastName}</strong>
+                    <span>{user.email}</span>
+                  </div>
+                </div>
+                <div className="profile-divider" />
+                <button className="btn btn-logout" type="button" onClick={onLogout}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
                   Logout
                 </button>
               </div>
@@ -101,37 +135,56 @@ export default function NotepadPage({
 
       <div className="notepad-layout">
         <main className="editor-panel editor-main">
+          <div className="editor-toolbar">
+            <div className="editor-mode-label">
+              {editingSessionId ? "✏️ Edit Mode" : "📝 Write Mode"}
+            </div>
+            <div className="editor-actions">
+              {editingSessionId ? (
+                <button className="btn btn-ghost" type="button" onClick={onNewSession}>
+                  + New Session
+                </button>
+              ) : null}
+              <button className="btn btn-primary btn-glow" type="button" onClick={() => void onSave()} disabled={saveLoading}>
+                {saveLoading ? "Saving..." : editingSessionId ? "Update Session" : "Save Session"}
+              </button>
+            </div>
+          </div>
+
           <textarea
             value={content}
             onChange={(event) => onContentChange(event.target.value)}
+            placeholder="Start writing your thoughts here..."
             aria-label="Writing editor"
           />
 
           <div className="editor-meta">
             <div className="stats">
-              <span>{wordCount} words</span>
-              <span>{charCount} chars</span>
-              <span>{lastSavedAt ? `Last saved: ${new Date(lastSavedAt).toLocaleTimeString()}` : "Not saved yet"}</span>
+              <span className="stat-pill">{wordCount} words</span>
+              <span className="stat-pill">{charCount} chars</span>
+              <span className="stat-pill">{lastSavedAt ? `Saved ${new Date(lastSavedAt).toLocaleTimeString()}` : "Not saved"}</span>
             </div>
-            <button className="btn btn-primary" type="button" onClick={() => void onSave()} disabled={saveLoading}>
-              {saveLoading ? "Saving..." : "Save session"}
-            </button>
+            <p className="status-line">{statusMessage}</p>
           </div>
-
-          <p className="status-line">{statusMessage}</p>
         </main>
 
         <section className="history-panel" aria-label="Session history section">
-            <h3>Session History</h3>
+          <div className="history-header">
+            <h3>📂 Session History</h3>
+            <span className="history-count">{history.length}</span>
+          </div>
 
-            <p className="muted">Open or delete your previous writing sessions.</p>
-
-            {history.length === 0 ? (
+          {history.length === 0 ? (
+            <div className="history-empty">
               <p className="muted">No saved sessions yet.</p>
-            ) : (
-              <ul>
-                {history.map((session) => (
-                  <li key={session.id} className="history-entry">
+              <p className="muted">Start writing and save to see your sessions here.</p>
+            </div>
+          ) : (
+            <ul>
+              {history.map((session) => {
+                const isActive = editingSessionId === session.id;
+                return (
+                  <li key={session.id} className={`history-entry ${isActive ? "is-active" : ""}`}>
                     <div className="history-item">
                       <button
                         type="button"
@@ -139,25 +192,38 @@ export default function NotepadPage({
                         onClick={() => void onOpenSession(session.id)}
                         disabled={loadingSessionId === session.id || deletingSessionId === session.id}
                       >
-                        <span>{new Date(session.updatedAt).toLocaleString()}</span>
-                        <strong>{session.wordCount} words | {session.charCount} chars</strong>
+                        <span className="history-date">{new Date(session.updatedAt).toLocaleString()}</span>
+                        <strong className="history-stats">{session.wordCount} words · {session.charCount} chars</strong>
                         <em>{loadingSessionId === session.id ? "Loading..." : "Open in editor"}</em>
                       </button>
 
-                      <button
-                        type="button"
-                        className="btn btn-danger history-delete-btn"
-                        onClick={() => void onDeleteSession(session.id)}
-                        disabled={loadingSessionId === session.id || deletingSessionId === session.id}
-                      >
-                        {deletingSessionId === session.id ? "Deleting..." : "Delete"}
-                      </button>
+                      <div className="history-actions">
+                        <button
+                          type="button"
+                          className="btn btn-edit"
+                          onClick={() => void onEditSession(session.id)}
+                          disabled={loadingSessionId === session.id || deletingSessionId === session.id}
+                          title="Edit this session"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-delete"
+                          onClick={() => void onDeleteSession(session.id)}
+                          disabled={loadingSessionId === session.id || deletingSessionId === session.id}
+                          title="Delete this session"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </div>
     </section>
   );

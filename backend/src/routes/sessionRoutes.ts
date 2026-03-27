@@ -5,6 +5,8 @@ import { WritingSession } from "../models/WritingSession";
 
 const router = Router();
 
+const MAX_CONTENT_LENGTH = 100_000; // ~100KB text limit
+
 function getContentMetrics(content: string) {
   const normalized = content.trim();
   const wordCount = normalized ? normalized.split(/\s+/).length : 0;
@@ -140,6 +142,47 @@ router.get("/:sessionId", async (req, res) => {
     });
   } catch (_error) {
     return res.status(500).json({ message: "Unable to fetch session" });
+  }
+});
+
+router.put("/:sessionId", async (req, res) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { sessionId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: "Invalid session id" });
+    }
+
+    const content = String(req.body.content ?? "");
+    const userId = new mongoose.Types.ObjectId(req.userId);
+    const sessionObjectId = new mongoose.Types.ObjectId(sessionId);
+    const metrics = getContentMetrics(content);
+
+    const session = await WritingSession.findOneAndUpdate(
+      { _id: sessionObjectId, userId },
+      { content, ...metrics },
+      { new: true },
+    );
+
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    return res.json({
+      session: {
+        id: session._id.toString(),
+        content: session.content,
+        wordCount: session.wordCount,
+        charCount: session.charCount,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+      },
+    });
+  } catch (_error) {
+    return res.status(500).json({ message: "Unable to update session" });
   }
 });
 

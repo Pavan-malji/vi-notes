@@ -6,7 +6,8 @@ type AuthMode = "login" | "register";
 type Theme = "dark" | "light";
 
 interface AuthPayload {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   password: string;
   confirmPassword?: string;
@@ -31,7 +32,8 @@ export default function LandingPage({
   onToggleTheme,
   onAuthSubmit,
 }: LandingPageProps) {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -62,7 +64,8 @@ export default function LandingPage({
     event.preventDefault();
 
     await onAuthSubmit({
-      name: isRegister ? name : undefined,
+      firstName: isRegister ? firstName : undefined,
+      lastName: isRegister ? lastName : undefined,
       email,
       password,
       confirmPassword: isRegister ? confirmPassword : undefined,
@@ -98,16 +101,28 @@ export default function LandingPage({
 
           <form className="auth-form" onSubmit={handleSubmit}>
             {isRegister ? (
-              <label>
-                Full name
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  minLength={2}
-                  required
-                />
-              </label>
+              <>
+                <label>
+                  First name
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                    minLength={2}
+                    required
+                  />
+                </label>
+                <label>
+                  Last name
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
+                    minLength={2}
+                    required
+                  />
+                </label>
+              </>
             ) : null}
 
             <label>

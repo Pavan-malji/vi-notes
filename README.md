@@ -1,130 +1,99 @@
 # Vi-Notes
 
-**Vi-Notes** is an authenticity verification platform designed to distinguish genuine human-written content from AI-generated or AI-assisted text. The system focuses on analyzing **writing behavior** alongside **statistical and linguistic characteristics** of the text to establish reliable authorship verification.
+Vi-Notes is a minimal, focused writing application built with the MERN stack (MongoDB, Express, React, Node.js). It offers a distraction-free writing environment with a side-by-side session history, theme toggling, and secure user authentication.
 
-This repository represents the **design and conceptual foundation** for the Vi-Notes system.
+## Features
 
----
-
-## Motivation
-
-With the widespread availability of AI writing tools, verifying true human authorship has become increasingly challenging. Most existing detection methods rely primarily on textual analysis, which can be inconsistent and easy to bypass.
-
-Vi-Notes approaches this problem by combining:
-- Behavioral signals from the writing process
-- Statistical analysis of the written content
-- Correlation between how content is written and what is written
+*   **Focus Mode Editing:** Clean, distraction-free textured notepad interface.
+*   **Session History:** Save, reopen, edit, and delete past writing sessions.
+*   **Keystroke Timing Metrics:** Analyzes typing behavior by capturing non-intrusive timing metrics (no actual characters are stored for privacy).
+*   **Authentication:** Secure registration and login using JWT.
+*   **Theming:** Animated light and dark mode toggle.
+*   **Responsive:** Works beautifully across desktop and mobile devices.
 
 ---
 
-## Core Idea
+## 🚀 Getting Started
 
-Human writing naturally includes:
-- Variable typing speeds
-- Pauses during thinking
-- Revisions during idea formation
-- Irregular sentence structures
-- A relationship between content complexity and editing frequency
+Follow these steps to set up and run the application locally.
 
-AI-generated or pasted text often lacks these behavioral signatures.
+### Prerequisites
 
-Vi-Notes is designed to capture and analyze these characteristics to assess authorship authenticity.
+*   **Node.js** (v18 or higher recommended)
+*   **MongoDB**: A MongoDB Atlas cluster (cloud) or a local MongoDB server.
 
----
+### 1. Clone & Install Dependencies
 
-## Key Features
+Open your terminal and navigate to the project root. First, install the dependencies for both the frontend and backend:
 
-### Writing Session Monitoring
-- Capture keystroke timing metadata (not raw key content)
-- Track pauses, deletions, edits, and writing flow
-- Detect pasted or externally inserted text blocks
+```bash
+# Install frontend dependencies
+cd frontend
+npm install
 
-### Behavioral Pattern Analysis
-- Pause distribution before sentences and paragraphs
-- Typing speed variance
-- Revision frequency relative to text complexity
-- Micro-pauses around punctuation and structural boundaries
+# Install backend dependencies
+cd ../backend
+npm install
+```
 
-### Textual Statistical Analysis
-- Sentence length variation
-- Vocabulary diversity metrics
-- Stylistic consistency analysis
-- Linguistic irregularities typical of human writing
+### 2. Configure Environment Variables
 
-### Cross-Verification Engine
-- Correlate keyboard behavior with text evolution
-- Identify mismatches between behavioral data and content
-- Flag suspicious uniformity patterns
+You need to set up the connection strings and secrets for the backend.
 
-### Authenticity Reports
-- Confidence score for human authorship
-- Highlighted suspicious segments
-- Supporting behavioral and textual indicators
-- Shareable verification summaries
+1. Navigate to the `backend` folder.
+2. Create a new file named `.env`.
+3. Add the following variables:
 
----
+```env
+# 🔴 IMPORTANT: Replace this MongoDB URI with your own connection string!
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/vi-notes?retryWrites=true&w=majority
 
-## Tech Stack (MERN Architecture)
+# Provide a strong, random secret string for JWT authentication
+JWT_SECRET=your_super_secret_jwt_key
 
-### Frontend
-- React
-- TypeScript
-- Electron for desktop-level keyboard event access
+# The port your backend will run on
+PORT=5000
 
-### Backend
-- Node.js
-- Express.js
-- RESTful APIs for session handling and analysis
+# Where your frontend is hosted (for CORS)
+CLIENT_ORIGIN=http://localhost:5173
+```
 
-### Database
-- MongoDB
-- Encrypted storage for writing sessions, keystroke metadata, and reports
+> **Note on MongoDB:** The `MONGO_URI` is crucial. The application will not start if it cannot connect to the database. Make sure to replace `<username>`, `<password>`, and your cluster URL with your actual MongoDB credentials.
 
-### Machine Learning
-- TensorFlow / PyTorch
-- Supervised learning for human vs AI-assisted writing
-- Unsupervised anomaly detection
-- NLP-based statistical signature analysis
+### 3. Running the Application
 
----
+You will need to run the frontend and backend servers simultaneously in two separate terminal windows.
 
-## Privacy & Ethics
+**Terminal 1 (Backend):**
+```bash
+cd backend
+npm run dev
+```
+*(This starts the backend on port `5000` with hot-reloading enabled).*
 
-Vi-Notes is designed with privacy-first principles:
+**Terminal 2 (Frontend):**
+```bash
+cd frontend
+npm run dev
+```
+*(This starts the Vite React application, usually on port `5173`).*
 
-- No storage of raw keystroke content
-- Only timing, frequency, and structural metadata is collected
-- Encrypted data storage
-- User-controlled session tracking
-- Monitoring limited strictly to active writing sessions
+### 4. Access the App
+
+Open your browser and navigate to the URL provided by Vite (typically `http://localhost:5173`). 
+
+*Tip: For subsequent deployments or if you want to test the compiled code, you can use `npm run build` and then `npm start` in the backend folder.*
 
 ---
 
-## Project Goals
+## Architecture Overview
 
-- Restore trust in written content authenticity
-- Differentiate between human-written, AI-assisted, and AI-generated text
-- Adapt detection methods as AI writing tools evolve
-- Maintain ethical, transparent, and privacy-conscious verification
+**Frontend:**
+*   **React** (Vite + TypeScript)
+*   **Styling:** Custom CSS with CSS variables for theming, neon glow effects, and responsive grid layouts.
+*   **Routing:** `react-router-dom`
 
----
-
-## Repository Scope
-
-This repository currently serves as:
-- A design reference
-- A research and experimentation space
-- A foundation for future MERN-based implementation
-
----
-
-## Contributing
-
-Contributions are welcome, especially for **feature requests and their implementation**.  
-If you are interested in working on an existing feature request or proposing a new one, please open or comment on an issue to start the discussion.
-
----
-
-## License
-
-This project is licensed under the MIT License.
+**Backend:**
+*   **Node.js / Express** (TypeScript)
+*   **Database:** MongoDB with Mongoose ODM
+*   **Security:** `helmet` for HTTP headers, `express-rate-limit` for DDoS protection, `bcryptjs` for password hashing, and size limits on payloads.
